@@ -111,7 +111,7 @@ public class ProfilActivity extends AppCompatActivity {
                 edtEmail.setText(mhs.getEmail());
                 if(mhs.getJenisKelamin().equals("Pria")) rdbPria.setChecked(true);
                 else if(mhs.getJenisKelamin().equals("Wanita")) rdbWanita.setChecked(true);
-                int posisi = adapter.getPosition(mhs.getProdi());
+                int posisi = adapter.getPosition(mhs.getProdi().getNama());
                 sprProdi.setSelection(posisi);
                 String[] hobies = mhs.getHobi().split(";");
                 for (String hobi:hobies) {
@@ -162,9 +162,17 @@ public class ProfilActivity extends AppCompatActivity {
                     Mahasiswa mhs = r.createObject(Mahasiswa.class, nextId);
                     mhs.setNama(nama);
                     mhs.setEmail(email);
-                    mhs.setProdi(prodi);
                     mhs.setJenisKelamin(jk);
                     mhs.setHobi(hobby);
+
+                    // Cari prodi yang sesuai dari Realm
+                    Prodi prodiObj = r.where(Prodi.class)
+                            .equalTo("nama", prodi)
+                            .findFirst();
+
+                    if (prodiObj != null) {
+                        mhs.setProdi(prodiObj);
+                    }
                 });
                 Toast.makeText(this, "Data tersimpan", Toast.LENGTH_SHORT).show();
             }
@@ -174,9 +182,17 @@ public class ProfilActivity extends AppCompatActivity {
                             .equalTo("studentID",studentID).findFirst();
                     mhs.setNama(nama);
                     mhs.setEmail(email);
-                    mhs.setProdi(prodi);
                     mhs.setJenisKelamin(jk);
                     mhs.setHobi(hobby);
+
+                    // Cari prodi yang sesuai dari Realm
+                    Prodi prodiObj = r.where(Prodi.class)
+                            .equalTo("nama", prodi)
+                            .findFirst();
+
+                    if (prodiObj != null) {
+                        mhs.setProdi(prodiObj);
+                    }
                 });
                 toListMahasiswa();
             }

@@ -50,7 +50,7 @@ public class MahasiswaAdapter extends ArrayAdapter<Mahasiswa> {
         TextView txvNama = currentItemView.findViewById(R.id.txvNama);
         TextView txvProdi = currentItemView.findViewById(R.id.txvProdi);
         txvNama.setText(mhs.getNama());
-        txvProdi.setText(mhs.getProdi());
+        txvProdi.setText(mhs.getProdi().getNama());
         currentItemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

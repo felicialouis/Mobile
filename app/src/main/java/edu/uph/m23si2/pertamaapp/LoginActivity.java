@@ -2,9 +2,14 @@ package edu.uph.m23si2.pertamaapp;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Spinner;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -12,18 +17,36 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import edu.uph.m23si2.pertamaapp.api.ApiResponse;
+import edu.uph.m23si2.pertamaapp.api.ApiService;
 import edu.uph.m23si2.pertamaapp.model.KRS;
 import edu.uph.m23si2.pertamaapp.model.KRSDetail;
 import edu.uph.m23si2.pertamaapp.model.Kelas_MataKuliah;
+import edu.uph.m23si2.pertamaapp.model.Kota;
 import edu.uph.m23si2.pertamaapp.model.Mahasiswa;
 import edu.uph.m23si2.pertamaapp.model.MataKuliah;
 import edu.uph.m23si2.pertamaapp.model.Prodi;
+import edu.uph.m23si2.pertamaapp.model.Provinsi;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 public class LoginActivity extends AppCompatActivity {
     Button btnLogin;
     EditText edtNama, edtPassword;
+    Spinner spnProvinsi, spnKota;
+    List<Provinsi> provinsiList =  new ArrayList<>();
+    List<String> namaProvinsi = new ArrayList<>();
+    List<Kota> kotaList =  new ArrayList<>();
+    List<String> namaKota = new ArrayList<>();
+    ArrayAdapter<String> adapterProvinsi, adapterKota;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +72,93 @@ public class LoginActivity extends AppCompatActivity {
         edtNama = findViewById(R.id.edtNama);
         edtPassword = findViewById(R.id.edtPassword);
 
+        // SPINNER PROVINSI
+        spnProvinsi = findViewById(R.id.spnProvinsi);
+        adapterProvinsi = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, namaProvinsi);
+        adapterProvinsi.setDropDownViewResource(android.R.layout.simple_spinner_item);
+        spnProvinsi.setAdapter(adapterProvinsi);
+        // SPINNER KOTA
+        spnKota = findViewById(R.id.spnKota);
+        adapterKota = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, namaKota);
+        adapterKota.setDropDownViewResource(android.R.layout.simple_spinner_item);
+        spnKota.setAdapter(adapterKota);
+
+
+        // init retrofit
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("https://wilayah.id")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+        ApiService apiService = retrofit.create(ApiService.class);
+
+        // panggil API
+        apiService.getProvinsi().enqueue(new Callback<ApiResponse<Provinsi>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<Provinsi>> call, Response<ApiResponse<Provinsi>> response) {
+                if(response.isSuccessful() && response.body()!=null){
+                    provinsiList = response.body().getData();
+                    namaProvinsi.clear();
+                    for(Provinsi p: provinsiList){
+                        if(p.getName()!=null){
+                            Log.d("Provinsi", p.getName());
+                            namaProvinsi.add(p.getName());
+                        }
+                    }
+
+                    adapterProvinsi.notifyDataSetChanged();
+
+                    spnProvinsi.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                        @Override
+                        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                            Provinsi selectedProvinsi = provinsiList.get(position);
+                            Log.d("Provinsi", selectedProvinsi.getCode() + " - " + selectedProvinsi.getName());
+
+                            apiService.getKota(selectedProvinsi.getCode()).enqueue(new Callback<ApiResponse<Kota>>() {
+                                @Override
+                                public void onResponse(Call<ApiResponse<Kota>> call, Response<ApiResponse<Kota>> response) {
+                                    if(response.isSuccessful() && response.body()!=null){
+                                        kotaList = response.body().getData();
+                                        namaKota.clear();
+                                        for(Kota k: kotaList){
+                                            if(k.getName()!=null){
+                                                Log.d("Kota", k.getName());
+                                                namaKota.add(k.getName());
+                                            }
+                                        }
+
+                                        adapterKota.notifyDataSetChanged();
+
+                                        spnKota.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                                            @Override
+                                            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                                                Kota selectedKota = kotaList.get(position);
+                                                Log.d("Kota", selectedKota.getCode() + " - " + selectedKota.getName());
+                                            }
+                                            @Override
+                                            public void onNothingSelected(AdapterView<?> parent) {
+                                            }
+                                        });
+                                    }
+                                }
+                                @Override
+                                public void onFailure(Call<ApiResponse<Kota>> call, Throwable t) {
+                                    Toast.makeText(LoginActivity.this,"Gagal :"+t.getMessage(),Toast.LENGTH_LONG).show();
+                                }
+                            });
+                        }
+                    @Override
+                    public void onNothingSelected(AdapterView<?> parent) {
+                    }
+                });
+            }
+        }
+            @Override
+            public void onFailure(Call<ApiResponse<Provinsi>> call, Throwable t) {
+                Toast.makeText(LoginActivity.this,"Gagal :"+t.getMessage(),Toast.LENGTH_LONG).show();
+            }
+        });
+
+
         btnLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -60,8 +170,11 @@ public class LoginActivity extends AppCompatActivity {
     public void initdata(){
         Realm realm = Realm.getDefaultInstance();
         realm.executeTransaction(r -> {
-//            Number maxId = r.where(Mahasiswa.class).max("studentID");
-//            int nextId = (maxId == null) ? 1 : maxId.intValue() + 1;
+            // cek apakah data sudah ada, kalau sudah jangan bikin lagi
+            if (r.where(Prodi.class).count() > 0) {
+                return; // sudah ada data, langsung keluar
+            }
+
             Prodi prodiSI = r.createObject(Prodi.class, 0);
             prodiSI.setNama("Sistem Informasi");
             prodiSI.setFakultas("Fakultas Ilmu Komputer");
@@ -100,7 +213,7 @@ public class LoginActivity extends AppCompatActivity {
             kelas_mataKuliah2.setMataKuliah(mataKuliah1);
             kelas_mataKuliah2.setDosenPengampu("Ade Maulana");
 
-            Kelas_MataKuliah kelas_mataKuliah3 = r.createObject(Kelas_MataKuliah.class, 1);
+            Kelas_MataKuliah kelas_mataKuliah3 = r.createObject(Kelas_MataKuliah.class, 2);
             kelas_mataKuliah3.setNamaKelas("23SI3");
             kelas_mataKuliah3.setMataKuliah(mataKuliah2);
             kelas_mataKuliah3.setDosenPengampu("Kevin Bastian Sirait");

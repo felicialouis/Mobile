@@ -162,7 +162,7 @@ public class LoginActivity extends AppCompatActivity {
         btnLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                toDashboard();
+                toAddPasien();
             }
         });
     }
@@ -244,8 +244,8 @@ public class LoginActivity extends AppCompatActivity {
         intent.putExtra("nama",edtNama.getText().toString());
         startActivity(intent);
     }
-    public void toDashboard(){
-        Intent intent = new Intent(this,DashboardActivity.class);
+    public void toAddPasien(){
+        Intent intent = new Intent(this,AddPasienActivity.class);
         startActivity(intent);
     }
 }
